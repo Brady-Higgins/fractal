@@ -1,0 +1,7 @@
+x,y plane
+function graphing
+complex plane rendering
+mandlebrot
+arrow keys
+zoom in, zoom out
+args for mandlebrot, other fractalsk
