@@ -35,16 +35,16 @@
 
 // }
 
-void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel){
+void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, float xOffset){
     float originY = static_cast<float>(size.y / 2.0);
     float originX = static_cast<float>(size.x / 2.0);
     float BigVal = 9999.0;
     float SmallVal = -9999.0;
     bool big;
-    // float unitsPerPixel = 0.03f;
+
     for (float x = 0; x < size.x; ++x) {
         // relative to origin
-        float function_x = (static_cast<float>(x) - originX);
+        float function_x = (static_cast<float>(x) - originX + xOffset);
         float scaled_x = function_x * unitsPerPixel;
         //equation-----------
         float function_y = scaled_x * scaled_x + 3.0 * scaled_x + 9.0;
@@ -73,6 +73,7 @@ int main()
     sf::Vector2u size = window.getSize();
     printf("%d\n",size.x);
     float unitsPerPixel = 1.0f;
+    float xOffset = 0.0;
     sf::VertexArray line(sf::PrimitiveType::LineStrip, size.x);
     while (window.isOpen())
     {
@@ -87,15 +88,26 @@ int main()
                 // -1 : scroll down   +1 : scroll up
                 float delta = scroll->delta;
                 if (delta == 1){
-                    unitsPerPixel -= .01f;
+                    unitsPerPixel -= .03f;
                 } 
                 if (delta == -1){
-                    unitsPerPixel += .01f;
+                    unitsPerPixel += .03f;
                 }
+            } else if (event->is<sf::Event::KeyPressed>()){
+                const auto& key = event->getIf<sf::Event::KeyPressed>();
+                //left
+                if (static_cast<char>(key->scancode) == 'W'){
+                    xOffset-=10.0;
+                }
+                //right
+                if (static_cast<char>(key->scancode) == 'V'){
+                    xOffset+=10.0;
+                }
+            
             }
         }
         
-        mandlebrot(line,size,unitsPerPixel);
+        mandlebrot(line,size,unitsPerPixel,xOffset);
 
         window.clear();
         window.draw(line);
