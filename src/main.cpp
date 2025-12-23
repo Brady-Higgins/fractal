@@ -35,12 +35,11 @@
 
 // }
 
-void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, float xOffset){
+void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, float xOffset, float yOffset){
     float originY = static_cast<float>(size.y / 2.0);
     float originX = static_cast<float>(size.x / 2.0);
     float BigVal = 9999.0;
     float SmallVal = -9999.0;
-    bool big;
 
     for (float x = 0; x < size.x; ++x) {
         // relative to origin
@@ -50,12 +49,12 @@ void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, f
         float function_y = scaled_x * scaled_x + 3.0 * scaled_x + 9.0;
         //-------------------
         int scaled_y = static_cast<int>(function_y / unitsPerPixel);
-        float relative_y = (originY - scaled_y);
+        float relative_y = (originY - scaled_y + yOffset);
         if (relative_y < static_cast<float>(size.y) && relative_y > 0.0){
             line[x].position = sf::Vector2f(x,relative_y);
             line[x].color = sf::Color::White;
             
-        } else if (relative_y < 0.0) {
+        } else if (relative_y <= 0.0) {
             line[x].position = sf::Vector2f(x,SmallVal);
             line[x].color = sf::Color::White;       
         } else {
@@ -74,6 +73,7 @@ int main()
     printf("%d\n",size.x);
     float unitsPerPixel = 1.0f;
     float xOffset = 0.0;
+    float yOffset = 0.0;
     sf::VertexArray line(sf::PrimitiveType::LineStrip, size.x);
     while (window.isOpen())
     {
@@ -95,6 +95,13 @@ int main()
                 }
             } else if (event->is<sf::Event::KeyPressed>()){
                 const auto& key = event->getIf<sf::Event::KeyPressed>();
+                // std::cout << static_cast<char>(key->code) << std::endl;
+                if (key->scancode == sf::Keyboard::Scan::Z){
+                    unitsPerPixel -= .03f;
+                }
+                if (key->scancode == sf::Keyboard::Scan::X){
+                    unitsPerPixel += .03f;
+                }
                 //left
                 if (static_cast<char>(key->scancode) == 'W'){
                     xOffset-=10.0;
@@ -103,11 +110,17 @@ int main()
                 if (static_cast<char>(key->scancode) == 'V'){
                     xOffset+=10.0;
                 }
+                if (static_cast<char>(key->scancode) == 'X'){
+                    yOffset-=10.0;
+                }
+                if (static_cast<char>(key->scancode) == 'Y'){
+                    yOffset+=10.0;
+                }
             
             }
         }
         
-        mandlebrot(line,size,unitsPerPixel,xOffset);
+        mandlebrot(line,size,unitsPerPixel,xOffset,yOffset);
 
         window.clear();
         window.draw(line);
