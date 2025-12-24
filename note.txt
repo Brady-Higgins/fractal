@@ -5,3 +5,9 @@ mandlebrot
 arrow keys
 zoom in, zoom out
 args for mandlebrot, other fractalsk
+
+
+
+
+paper proof on the various concepts and scaling rules
+?host on personal website?

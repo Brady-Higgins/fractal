@@ -1,60 +1,33 @@
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include <iostream>
+#include <complex>
 
-// Updates an array of vertex points to map the mandlebrot set for a given x min and x max
-// sf::Vector2u size : represents the max x width of the screen. So size samples
-// top left is 0,0 and bottom right is max,max
-// void mandlebrot(sf::VertexArray& line, sf::Vector2u size){
-//     float originY = static_cast<float>(size.y / 2.0);
-//     float originX = static_cast<float>(size.x / 2.0);
-//     float BigVal = 9999.0;
-//     float SmallVal = -9999.0;
-//     bool big;
-//     float unitsPerPixel = 0.05f;
-//     for (float x = 0; x < size.x; ++x) {
-//         // relative to origin
-//         float function_x = (static_cast<float>(x) - originX);
-//         //equation-----------
-//         float function_y = function_x * function_x + 3.0 * function_x + 9.0;
-//         //-------------------
-//         float relative_y = (originY - function_y);
-//         if (relative_y < static_cast<float>(size.y) && relative_y > 0.0){
-//             printf("%f,%f\n",x,function_y);
-//             line[x].position = sf::Vector2f(x,relative_y);
-//             line[x].color = sf::Color::White;
-            
-//         } else if (relative_y < 0.0) {
-//             line[x].position = sf::Vector2f(x,SmallVal);
-//             line[x].color = sf::Color::White;       
-//         } else {
-//             line[x].position = sf::Vector2f(x,BigVal);
-//             line[x].color = sf::Color::White;             
-//         }
-//     }
 
-// }
+// < 1 or weird
+const float x_stretch = 0.5;
 
-void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, float xOffset, float yOffset){
+void function(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, float xOffset, float yOffset){
     float originY = static_cast<float>(size.y / 2.0);
     float originX = static_cast<float>(size.x / 2.0);
     float BigVal = 9999.0;
     float SmallVal = -9999.0;
+    if (unitsPerPixel <= 0.03f){
+        unitsPerPixel = 0.03f;
+    }
 
     for (float x = 0; x < size.x; ++x) {
-        // relative to origin
-        float function_x = (static_cast<float>(x) - originX + xOffset);
-        float scaled_x = function_x * unitsPerPixel;
+        float math_x = (x - originX) * unitsPerPixel * x_stretch + xOffset;
         //equation-----------
-        float function_y = scaled_x * scaled_x + 3.0 * scaled_x + 9.0;
+        // float math_y = math_x * math_x + 4*math_x + 9
+        float math_y = 10.0 * cos(math_x);
         //-------------------
-        int scaled_y = static_cast<int>(function_y / unitsPerPixel);
-        float relative_y = (originY - scaled_y + yOffset);
-        if (relative_y < static_cast<float>(size.y) && relative_y > 0.0){
-            line[x].position = sf::Vector2f(x,relative_y);
+        float screen_y = originY - (math_y / unitsPerPixel) + yOffset;
+        if (screen_y < static_cast<float>(size.y) && screen_y > 0.0){
+            line[x].position = sf::Vector2f(x,screen_y);
             line[x].color = sf::Color::White;
             
-        } else if (relative_y <= 0.0) {
+        } else if (screen_y <= 0.0) {
             line[x].position = sf::Vector2f(x,SmallVal);
             line[x].color = sf::Color::White;       
         } else {
@@ -65,16 +38,82 @@ void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel, f
 
 }
 
+void mandlebrot(sf::VertexArray& line, sf::Vector2u size, float unitsPerPixel,
+                float xOffset,
+                float yOffset)
+{
+    const int maxDepth = 200;
+
+    const int width  = static_cast<int>(size.x);
+    const int height = static_cast<int>(size.y);
+
+    line.setPrimitiveType(sf::PrimitiveType::Points);
+    line.resize(width * height);
+
+    const float originX = size.x / 2.f;
+    const float originY = size.y / 2.f;
+
+    if (unitsPerPixel < 0.0005f)
+        unitsPerPixel = 0.0005f;
+
+    for (int py = 0; py < height; ++py)
+    {
+        for (int px = 0; px < width; ++px)
+        {
+            float x = (px - originX) * unitsPerPixel + xOffset;
+            float y = (originY - py) * unitsPerPixel + yOffset;
+
+            std::complex<float> z = 0.0f;
+            std::complex<float> c(x, y);
+
+            int iter = 0;
+            for (; iter < maxDepth; ++iter)
+            {
+                z = z * z + c;
+                // not a real norm. squared values of real and imaginary values
+                // circle of radius 2 around origin that quantifies escape radius
+                if (std::norm(z) > 4.0f)
+                    break;
+            }
+
+            int index = py * width + px;
+
+            line[index].position = sf::Vector2f(
+                static_cast<float>(px),
+                static_cast<float>(py)
+            );
+
+            if (iter == maxDepth)
+            {
+                line[index].color = sf::Color::Black;
+            }
+            else
+            {
+                line[index].color = sf::Color::White;
+            }
+        }
+    }
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode({800u, 800u}), "Graph");
+
+    // // Right-side control panel background
+    // const float panelWidth = 250.f;
+    // sf::RectangleShape panel;
+    // panel.setSize({panelWidth, 600});
+    // panel.setPosition({750, 0});
+    // panel.setFillColor(sf::Color(30, 30, 30));
+    bool mandlebrotGraph = false;
 
     sf::Vector2u size = window.getSize();
     printf("%d\n",size.x);
     float unitsPerPixel = 1.0f;
     float xOffset = 0.0;
     float yOffset = 0.0;
-    sf::VertexArray line(sf::PrimitiveType::LineStrip, size.x);
+    // sf::VertexArray line(sf::PrimitiveType::LineStrip, size.x);
+    
     while (window.isOpen())
     {
         
@@ -95,7 +134,7 @@ int main()
                 }
             } else if (event->is<sf::Event::KeyPressed>()){
                 const auto& key = event->getIf<sf::Event::KeyPressed>();
-                // std::cout << static_cast<char>(key->code) << std::endl;
+                // std::cout << static_cast<int>(key->code) << std::endl;
                 if (key->scancode == sf::Keyboard::Scan::Z){
                     unitsPerPixel -= .03f;
                 }
@@ -104,26 +143,63 @@ int main()
                 }
                 //left
                 if (static_cast<char>(key->scancode) == 'W'){
-                    xOffset-=10.0;
+                    if (mandlebrotGraph) {
+                        xOffset-=0.5;
+                    } else {
+                        xOffset-=5.0;
+                    }
                 }
                 //right
                 if (static_cast<char>(key->scancode) == 'V'){
-                    xOffset+=10.0;
+                    if (mandlebrotGraph) {
+                        xOffset+=0.5;
+                    } else {
+                        xOffset+=5.0;
+                    }
                 }
                 if (static_cast<char>(key->scancode) == 'X'){
-                    yOffset-=10.0;
+                    if (mandlebrotGraph) {
+                        yOffset-=0.5;
+                    } else {
+                        yOffset-=10.0;
+                    }
                 }
                 if (static_cast<char>(key->scancode) == 'Y'){
-                    yOffset+=10.0;
+                    if (mandlebrotGraph) {
+                        yOffset+=0.5;
+                    } else {
+                        yOffset+=10.0;
+                    }
+                    
+                }
+                //c = switch to function
+                if (static_cast<int>(key->code)==2){
+                    if (mandlebrotGraph){
+                        mandlebrotGraph = false;
+                    } else {
+                        mandlebrotGraph = true;
+                    }
+                    
                 }
             
             }
-        }
-        
-        mandlebrot(line,size,unitsPerPixel,xOffset,yOffset);
 
-        window.clear();
-        window.draw(line);
+        }
+
+        if (mandlebrotGraph){
+            unitsPerPixel = 0.005;
+            sf::VertexArray line(sf::PrimitiveType::Points, size.x);
+            mandlebrot(line,size,unitsPerPixel,xOffset,yOffset);
+            window.clear();
+            // window.draw(panel);
+            window.draw(line);
+        } else {
+            sf::VertexArray line(sf::PrimitiveType::LineStrip, size.x);
+            function(line,size,unitsPerPixel,xOffset,yOffset);
+            window.clear();
+            // window.draw(panel);
+            window.draw(line);
+        }
         window.display();
     }
 }
